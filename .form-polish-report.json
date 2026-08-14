@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": ["muskelgruppe"],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten-Entity ohne Numerikfelder und Preis-Applookups. Keine Berechnungen möglich. Default für Muskelgruppe gesetzt (Ganzkörper) für eine breite Vorbelegung."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum", "satz_nummer"],
+      "computed_keys": [],
+      "reason": "Trainingseintrag mit Datum (heute + Uhrzeit) und optional Satznummer (Default 1). Applookup auf Übungen hat keine Preis-Felder. Keine sinnvollen Geldberechnungen oder Aggregate verfügbar."
+    }
+  }
+}

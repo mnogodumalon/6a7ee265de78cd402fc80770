@@ -1,0 +1,16 @@
+{
+  "components": [
+    {
+      "file": "src/components/custom/TrainingHeatmap.tsx",
+      "component": "TrainingHeatmap",
+      "ok": true,
+      "error": null
+    },
+    {
+      "file": "src/components/custom/QuickLogPanel.tsx",
+      "component": "QuickLogPanel",
+      "ok": true,
+      "error": null
+    }
+  ]
+}

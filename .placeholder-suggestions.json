@@ -1,0 +1,15 @@
+{
+  "UebungenDialog.tsx": {
+    "name": "z. B. Liegestütze",
+    "muskelgruppe": "Welche Muskelgruppe?",
+    "notizen": "Ausführung, Tempo, Besonderheiten..."
+  },
+  "TrainingslogDialog.tsx": {
+    "datum": "Wann trainiert?",
+    "uebung": "Welche Übung?",
+    "satz_nummer": "z. B. 1",
+    "gewicht_kg": "z. B. 20",
+    "wiederholungen": "z. B. 10",
+    "notiz": "z. B. leicht möglich"
+  }
+}
