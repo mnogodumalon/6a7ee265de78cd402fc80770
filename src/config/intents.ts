@@ -20,6 +20,7 @@
 import type { ComponentType } from 'react';
 
 // <custom:intent-imports>
+import { IconBarbell } from '@tabler/icons-react';
 // </custom:intent-imports>
 
 export interface IntentLink {
@@ -42,6 +43,7 @@ export interface IntentLink {
 
 export const INTENTS: IntentLink[] = [
   // <custom:intents>
+  { path: '/intents/satz-loggen', label: { de: 'Satz loggen', en: 'Log set' }, icon: IconBarbell, description: 'Übung wählen und Satz mit Gewicht und Wiederholungen in zwei Schritten erfassen' },
   // </custom:intents>
 ];
 
@@ -52,4 +54,4 @@ export const INTENTS: IntentLink[] = [
  * purpose — a scaffold update resets it to false (self-healing if Phase 2
  * never ran).
  */
-export const INTENTS_PENDING = true;
+export const INTENTS_PENDING = false;
