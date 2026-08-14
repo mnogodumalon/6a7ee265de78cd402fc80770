@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": [],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten-Entity ohne Berechnung. Keine Number-Felder außer dem optionalen Lookup, keine applookups auf externe Preisquellen, keine Datumspaarungen. Alle Werte sind Benutzer-Eingaben ohne mathematische Abhängigkeiten."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum"],
+      "computed_keys": [],
+      "reason": "Trainings-Erfassungs-Entity mit reinen Messwerten. satz_nummer, gewicht_kg und wiederholungen sind dokumentarisch, nicht berechenbar. Kein Zugriff auf Preis-/Leistungs-Felder der Übungen-Entity. Das Erfassungs-Datum bekam einen 'today with time'-Default als Erfassungszeitstempel, alle weiteren Felder sind manuelle Eingaben."
+    }
+  }
+}
