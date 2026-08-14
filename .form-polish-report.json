@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": [],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten ohne berechenbare Felder. Muskelgruppe ist statisches Lookup, keine numerischen Abhängigkeiten."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum", "satz_nummer"],
+      "computed_keys": [],
+      "reason": "Trainings-Protokoll mit manuellen Eingaben (Gewicht, Wiederholungen, Sätze). Applookup auf Übungen hat keine Preis-/Satz-Felder. Keine berechenbaren Metriken."
+    }
+  }
+}

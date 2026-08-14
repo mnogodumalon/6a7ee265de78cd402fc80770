@@ -1,0 +1,35 @@
+{
+  "pages": {
+    "en": {
+      "Bearbeiten": "Edit",
+      "Diese Woche": "This Week",
+      "Erste Übung anlegen": "Create First Exercise",
+      "Ersten Satz erfassen": "Log First Set",
+      "Heute": "Today",
+      "Kein Training": "No Training",
+      "Kraftentwicklung": "Strength Progress",
+      "Leg los — erfasse deinen ersten Satz!": "Get Started — Log Your First Set!",
+      "Letzte Sätze": "Recent Sets",
+      "Mehr": "More",
+      "Neue Übung": "New Exercise",
+      "Noch keine Daten — erfasse Gewicht beim Training.": "No Data Yet — Log Weight During Training.",
+      "Noch keine Sätze — leg jetzt los!": "No Sets Yet — Start Now!",
+      "Satz": "Set",
+      "Satz aktualisiert": "Set Updated",
+      "Satz erfassen": "Log Set",
+      "Satz erfasst": "Set Logged",
+      "Schnell erfassen": "Quick Log",
+      "Sätze gesamt": "Total Sets",
+      "Sätze pro Tag": "Sets per Day",
+      "Trainings-Heatmap": "Training Heatmap",
+      "Trainingstage diesen Monat": "Training Days This Month",
+      "Weniger": "Less",
+      "{0} Sätze": "{0} Sets",
+      "{0} Sätze diese Woche": "{0} Sets This Week",
+      "{0} Sätze heute — weiter so!": "{0} Sets Today — Keep It Up!",
+      "Übung aktualisiert": "Exercise Updated",
+      "Übung angelegt": "Exercise Created"
+    }
+  },
+  "v": 1
+}
