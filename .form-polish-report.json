@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": [],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten-Entity (Name, Muskelgruppe, Notizen). Keine numerischen Felder, keine Datumsfelder, keine applookup-Ketten mit Preis-Semantik. Keine Berechnung möglich oder nötig."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum", "satz_nummer"],
+      "computed_keys": [],
+      "reason": "Trainings-Logbuch-Entity: Datum, Übungs-Applookup, Satznummer, Gewicht, Wiederholungen, Notiz. Alle Felder sind echte Nutzereingaben ohne berechnete Abhängigkeiten. Keine Preissemantikunst, keine Mengen-Produkte, keine Datums-Differenzen zu berechnen. Defaults: Datum=heute+Zeit, Satznummer=1 (typischer Start)."
+    }
+  }
+}
