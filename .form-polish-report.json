@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": [],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten-Entity für Trainingsübungen. Keine Datumsparre, kein numerisches Preisfeld, kein applookup mit Kostenlink. Nichts berechenbar."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum", "satz_nummer"],
+      "computed_keys": [],
+      "reason": "Biometrische Messdaten (Gewicht × Wiederholungen × Satznummer pro Trainingseinheit). Alle Zahlen sind direkte Nutzer-Eingaben, keine Berechnung. Applookup auf Übungen hat keine Preis-/Kosten-Spalte."
+    }
+  }
+}

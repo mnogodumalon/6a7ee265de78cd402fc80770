@@ -1,0 +1,942 @@
+# Scaffold key file contents — part 1/2.
+Same rule as .scaffold_context: these files are pre-generated; never Read the source files themselves.
+
+## src/types/app.ts
+```
+import { lookupLabel } from '@/i18n';
+
+// AUTOMATICALLY GENERATED TYPES - DO NOT EDIT
+
+export type LookupValue = { key: string; label: string };
+export type GeoLocation = { lat: number; long: number; info?: string };
+
+export type AttachmentType = 'file' | 'note' | 'url' | 'json';
+export interface Attachment {
+  id: string;
+  type: AttachmentType;
+  label: string | null;
+  value: string | null;
+  active: boolean;
+  createdat?: string | null;
+  updatedat?: string | null;
+}
+
+export interface AttachmentInput {
+  type: AttachmentType;
+  label?: string;
+  value: string;
+  active?: boolean;
+}
+
+export interface Uebungen {
+  record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
+  createdat: string;
+  updatedat: string | null;
+  fields: {
+    name?: string;
+    muskelgruppe?: LookupValue;
+    notizen?: string;
+  };
+}
+
+export interface Trainingslog {
+  record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
+  createdat: string;
+  updatedat: string | null;
+  fields: {
+    datum?: string; // Format: YYYY-MM-DD oder ISO String
+    uebung?: string; // applookup -> URL zu 'Uebungen' Record
+    satz_nummer?: number;
+    gewicht_kg?: number;
+    wiederholungen?: number;
+    notiz?: string;
+  };
+}
+
+export const APP_IDS = {
+  UEBUNGEN: '6a7ee25960d65014941c40fe',
+  TRAININGSLOG: '6a7ee25cb89e32a8f654d32f',
+} as const;
+
+
+export const LOOKUP_OPTIONS: Record<string, Record<string, {key: string, label: string}[]>> = {
+  'uebungen': {
+    muskelgruppe: [{ key: "brust", get label() { return lookupLabel('uebungen', 'muskelgruppe', "brust") ?? "Brust"; } }, { key: "ruecken", get label() { return lookupLabel('uebungen', 'muskelgruppe', "ruecken") ?? "Rücken"; } }, { key: "schultern", get label() { return lookupLabel('uebungen', 'muskelgruppe', "schultern") ?? "Schultern"; } }, { key: "arme", get label() { return lookupLabel('uebungen', 'muskelgruppe', "arme") ?? "Arme"; } }, { key: "beine", get label() { return lookupLabel('uebungen', 'muskelgruppe', "beine") ?? "Beine"; } }, { key: "bauch", get label() { return lookupLabel('uebungen', 'muskelgruppe', "bauch") ?? "Bauch"; } }, { key: "ganzkoerper", get label() { return lookupLabel('uebungen', 'muskelgruppe', "ganzkoerper") ?? "Ganzkörper"; } }],
+  },
+};
+
+// Optimistic LookupValue writes: never re-type a label — resolve the schema
+// option instead (its label is a locale-aware getter; falls back to the key).
+// WRONG: status: { key: 'offen', label: 'Offen' }   (frozen in one language)
+// RIGHT: status: lookupOption('<appKey>', 'status', 'offen')
+export function lookupOption(app: string, field: string, key: string): LookupValue {
+  return LOOKUP_OPTIONS[app]?.[field]?.find(o => o.key === key) ?? { key, label: key };
+}
+
+export const FIELD_TYPES: Record<string, Record<string, string>> = {
+  'uebungen': {
+    'name': 'string/text',
+    'muskelgruppe': 'lookup/select',
+    'notizen': 'string/textarea',
+  },
+  'trainingslog': {
+    'datum': 'date/datetimeminute',
+    'uebung': 'applookup/select',
+    'satz_nummer': 'number',
+    'gewicht_kg': 'number',
+    'wiederholungen': 'number',
+    'notiz': 'string/text',
+  },
+};
+
+export const HUB_TOPOLOGY: Record<string, { field: string; entity: string }[]> = {
+};
+
+type StripLookup<T> = {
+  [K in keyof T]: T[K] extends LookupValue | undefined ? string | LookupValue | undefined
+    : T[K] extends LookupValue[] | undefined ? string[] | LookupValue[] | undefined
+    : T[K];
+};
+
+// Helper Types for creating new records (lookup fields as plain strings for API)
+export type CreateUebungen = StripLookup<Uebungen['fields']>;
+export type CreateTrainingslog = StripLookup<Trainingslog['fields']>;
+```
+
+## src/services/livingAppsService.ts
+```
+// AUTOMATICALLY GENERATED SERVICE
+import { APP_IDS, LOOKUP_OPTIONS, FIELD_TYPES } from '@/types/app';
+import { ensureUploadableImage } from '@/lib/ai';
+import type { Uebungen, Trainingslog, CreateUebungen, CreateTrainingslog } from '@/types/app';
+
+// Base Configuration
+const API_BASE_URL = 'https://my.living-apps.de/rest';
+
+// --- HELPER FUNCTIONS ---
+export function extractRecordId(url: unknown): string | null {
+  if (!url) return null;
+  if (typeof url !== 'string') return null;
+  const match = url.match(/([a-f0-9]{24})$/i);
+  return match ? match[1] : null;
+}
+
+// multipleapplookup form-state is Array<URL>. The MultiCombobox picker
+// works on record-ids; this helper maps a raw form value (which may be
+// undefined, null, a single URL string from a legacy single-Combobox
+// render, or the expected URL array) to a clean string[] of ids.
+export function extractRecordIds(urls: unknown): string[] {
+  if (!urls) return [];
+  const arr = Array.isArray(urls) ? urls : [urls];
+  const out: string[] = [];
+  for (const u of arr) {
+    const id = extractRecordId(u);
+    if (id) out.push(id);
+  }
+  return out;
+}
+
+export function createRecordUrl(appId: string, recordId: string): string {
+  return `https://my.living-apps.de/rest/apps/${appId}/records/${recordId}`;
+}
+
+export class LivingAppsApiError extends Error {
+  status: number;
+  type?: string;
+  control_identifier?: string;
+  control_type?: string;
+  field_type?: string;
+  detail?: string;
+  constructor(message: string, status: number, raw?: Record<string, unknown>) {
+    super(message);
+    this.name = 'LivingAppsApiError';
+    this.status = status;
+    if (raw) {
+      this.type = typeof raw.type === 'string' ? raw.type : undefined;
+      this.control_identifier = typeof raw.control_identifier === 'string' ? raw.control_identifier : undefined;
+      this.control_type = typeof raw.control_type === 'string' ? raw.control_type : undefined;
+      this.field_type = typeof raw.field_type === 'string' ? raw.field_type : undefined;
+      this.detail = typeof raw.detail === 'string' ? raw.detail : undefined;
+    }
+  }
+}
+
+async function parseErrorBody(response: Response): Promise<{ message: string; raw?: Record<string, unknown> }> {
+  const text = await response.text();
+  if (!text) return { message: `HTTP ${response.status}` };
+  try {
+    const raw = JSON.parse(text);
+    if (raw && typeof raw === 'object') {
+      const obj = raw as Record<string, unknown>;
+      const message = typeof obj.detail === 'string' ? obj.detail
+        : typeof obj.title === 'string' ? obj.title
+        : text;
+      return { message, raw: obj };
+    }
+  } catch { /* fall through to text */ }
+  return { message: text };
+}
+
+export interface CallApiOptions {
+  /** Skip errorbus dispatch for expected failures (e.g. optional-param 404s). */
+  silent?: boolean;
+}
+
+/** What the create and update helpers resolve to. Same `record_id`
+ *  the read helpers expose, so the whole family behaves alike — the
+ *  raw REST answer only
+ *  carries `id`, and code that guessed (e.g. Object.keys(res)[0]) built
+ *  `/records/id` and got a 400 on the next write. */
+export interface MutationResult {
+  record_id: string;
+  id: string;
+  fields: Record<string, any>;
+  [key: string]: any;
+}
+
+async function callApi(method: string, endpoint: string, data?: any, options?: CallApiOptions) {
+  const silent = options?.silent === true;
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',  // Nutze Session Cookies für Auth
+      body: data ? JSON.stringify(data) : undefined
+    });
+  } catch (netErr) {
+    const message = netErr instanceof Error ? netErr.message : String(netErr);
+    if (!silent) {
+      window.dispatchEvent(new CustomEvent('errorbus:emit', { detail: {
+        source: 'network', message, status: 0,
+      } }));
+    }
+    throw netErr;
+  }
+  if (!response.ok) {
+    // 401/403 go to the login screen only — never to the errorbus (repair can't fix auth).
+    const isAuthError = response.status === 401 || response.status === 403;
+    if (isAuthError) window.dispatchEvent(new Event('auth-error'));
+    const { message, raw } = await parseErrorBody(response);
+    const err = new LivingAppsApiError(message, response.status, raw);
+    if (!silent && !isAuthError) {
+      window.dispatchEvent(new CustomEvent('errorbus:emit', { detail: {
+        source: 'api',
+        status: err.status,
+        type: err.type,
+        control_identifier: err.control_identifier,
+        control_type: err.control_type,
+        field_type: err.field_type,
+        detail: err.detail,
+        message: err.message,
+      } }));
+    }
+    throw err;
+  }
+  // DELETE returns often empty body or simple status
+  if (method === 'DELETE') return true;
+  return response.json();
+}
+
+/** Upload a file to LivingApps. Returns the file URL for use in record fields. */
+export async function uploadFile(file: File | Blob, filename?: string): Promise<string> {
+  // HEIC/HEIF (iPhone photos) crash the server-side image decoder (500).
+  // Convert to JPEG in the browser BEFORE upload — every upload path routes
+  // through here, so this one guard covers form fields AND attachments.
+  if (file instanceof File) file = await ensureUploadableImage(file);
+  const formData = new FormData();
+  formData.append('file', file, filename ?? (file instanceof File ? file.name : 'upload'));
+  const res = await fetch(`${API_BASE_URL}/files`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) window.dispatchEvent(new Event('auth-error'));
+    throw new Error(`File upload failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.url;
+}
+
+// --- ATTACHMENT API ---
+// Record-attachments: file/note/url/json blobs attached to a single record.
+// `getAttachments` returns a dict keyed by attachment id; we flatten to an array.
+export async function getRecordAttachments(appId: string, recordId: string) {
+  const data = await callApi('GET', `/apps/${appId}/records/${recordId}/attachments`, undefined, { silent: true }).catch(() => ({}));
+  if (!data || typeof data !== 'object') return [] as import('@/types/app').Attachment[];
+  return Object.entries(data).map(([id, att]) => ({ id, ...(att as Record<string, unknown>) })) as import('@/types/app').Attachment[];
+}
+
+export async function createRecordAttachment(appId: string, recordId: string, input: import('@/types/app').AttachmentInput) {
+  return callApi('POST', `/apps/${appId}/records/${recordId}/attachments`, input) as Promise<import('@/types/app').Attachment>;
+}
+
+export async function updateRecordAttachment(appId: string, recordId: string, attachmentId: string, input: Partial<import('@/types/app').AttachmentInput>) {
+  return callApi('PATCH', `/apps/${appId}/records/${recordId}/attachments/${attachmentId}`, input) as Promise<import('@/types/app').Attachment>;
+}
+
+export async function deleteRecordAttachment(appId: string, recordId: string, attachmentId: string) {
+  return callApi('DELETE', `/apps/${appId}/records/${recordId}/attachments/${attachmentId}`);
+}
+
+function enrichLookupFields<T extends { fields: Record<string, unknown> }>(
+  records: T[], entityKey: string
+): T[] {
+  const opts = LOOKUP_OPTIONS[entityKey];
+  if (!opts) return records;
+  return records.map(r => {
+    const fields = { ...r.fields };
+    for (const [fieldKey, options] of Object.entries(opts)) {
+      const val = fields[fieldKey];
+      if (typeof val === 'string') {
+        const m = options.find(o => o.key === val);
+        fields[fieldKey] = m ?? { key: val, label: val };
+      } else if (Array.isArray(val)) {
+        fields[fieldKey] = val.map(v => {
+          if (typeof v === 'string') {
+            const m = options.find(o => o.key === v);
+            return m ?? { key: v, label: v };
+          }
+          return v;
+        });
+      }
+    }
+    return { ...r, fields } as T;
+  });
+}
+
+/** Normalize fields for API writes: strip lookup objects to keys, fix date formats. */
+export function cleanFieldsForApi(
+  fields: Record<string, unknown>,
+  entityKey: string
+): Record<string, unknown> {
+  const clean: Record<string, unknown> = { ...fields };
+  // Strip virtual / unknown keys before they hit the API. Sub-agent invents
+  // computed-only keys (e.g. `_netto`, `_bestellung_gesamtbetrag`) for the
+  // 'Berechnungen' display, and a leaky submit-backfill would otherwise send
+  // them to the Living-Apps backend which rejects with 'field does not exist'.
+  const known = FIELD_TYPES[entityKey];
+  if (known) {
+    for (const k of Object.keys(clean)) {
+      if (!(k in known)) delete clean[k];
+    }
+  }
+  for (const [k, v] of Object.entries(clean)) {
+    if (v && typeof v === 'object' && !Array.isArray(v) && 'key' in v) clean[k] = (v as any).key;
+    if (Array.isArray(v)) clean[k] = v.map((item: any) => item && typeof item === 'object' && 'key' in item ? item.key : item);
+  }
+  const types = FIELD_TYPES[entityKey];
+  if (types) {
+    for (const [k, ft] of Object.entries(types)) {
+      if (!(k in clean)) continue;
+      const val = clean[k];
+      // applookup fields: undefined → null (clear single reference)
+      if ((ft === 'applookup/select' || ft === 'applookup/choice') && val === undefined) { clean[k] = null; continue; }
+      // multipleapplookup fields: undefined/null → [] (clear multi reference)
+      if ((ft === 'multipleapplookup/select' || ft === 'multipleapplookup/choice') && (val === undefined || val === null)) { clean[k] = []; continue; }
+      // lookup fields: undefined → null (clear single lookup)
+      if ((ft.startsWith('lookup/')) && val === undefined) { clean[k] = null; continue; }
+      // multiplelookup fields: undefined/null → [] (clear multi lookup)
+      if ((ft.startsWith('multiplelookup/')) && (val === undefined || val === null)) { clean[k] = []; continue; }
+      if (typeof val !== 'string' || !val) continue;
+      if (ft === 'date/datetimeminute') clean[k] = val.slice(0, 16);
+      else if (ft === 'date/date') clean[k] = val.slice(0, 10);
+    }
+  }
+  return clean;
+}
+
+let _cachedUserProfile: Record<string, unknown> | null = null;
+
+export async function getUserProfile(): Promise<Record<string, unknown>> {
+  if (_cachedUserProfile) return _cachedUserProfile;
+  const raw = await callApi('GET', '/user');
+  const skip = new Set(['id', 'image', 'lang', 'gender', 'title', 'fax', 'menus', 'initials']);
+  const data: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (v != null && !skip.has(k)) data[k] = v;
+  }
+  _cachedUserProfile = data;
+  return data;
+}
+
+export interface HeaderProfile {
+  firstname: string;
+  surname: string;
+  email: string;
+  image: string | null;
+  company: string | null;
+}
+
+let _cachedHeaderProfile: HeaderProfile | null = null;
+
+export async function getHeaderProfile(): Promise<HeaderProfile> {
+  if (_cachedHeaderProfile) return _cachedHeaderProfile;
+  const raw = await callApi('GET', '/user');
+  _cachedHeaderProfile = {
+    firstname: raw.firstname ?? '',
+    surname: raw.surname ?? '',
+    email: raw.email ?? '',
+    image: raw.image ?? null,
+    company: raw.company ?? null,
+  };
+  return _cachedHeaderProfile;
+}
+
+export interface AppGroupInfo {
+  id: string;
+  name: string;
+  image: string | null;
+  createdat: string;
+  /** Resolved link: /objects/{id}/ if the dashboard exists, otherwise /gateway/apps/{firstAppId}?template=list_page */
+  href: string;
+}
+
+let _cachedAppGroups: AppGroupInfo[] | null = null;
+
+export async function getAppGroups(): Promise<AppGroupInfo[]> {
+  if (_cachedAppGroups) return _cachedAppGroups;
+  const raw = await callApi('GET', '/appgroups?with=apps');
+  const groups: AppGroupInfo[] = Object.values(raw)
+    .map((g: any) => {
+      const firstAppId = Object.keys(g.apps ?? {})[0] ?? g.id;
+      return {
+        id: g.id,
+        name: g.name,
+        image: g.image ?? null,
+        // API field is created_at (snake_case) — the old camelCase read
+        // left every group '', silently disabling the newest-first sort.
+        createdat: g.created_at ?? g.createdat ?? '',
+        href: `/gateway/apps/${firstAppId}?template=list_page`,
+        _firstAppId: firstAppId,
+      };
+    })
+    .sort((a, b) => b.createdat.localeCompare(a.createdat));
+
+  // Check which appgroups have a deployed dashboard via app params
+  const paramChecks = await Promise.allSettled(
+    groups.map(g => callApi('GET', `/apps/${(g as any)._firstAppId}/params/la_page_header_additional_url`, undefined, { silent: true }))
+  );
+  paramChecks.forEach((result, i) => {
+    if (result.status !== 'fulfilled' || !result.value) return;
+    const url = result.value.value;
+    if (typeof url === 'string' && url.length > 0) {
+      try { groups[i].href = new URL(url).pathname; } catch { groups[i].href = url; }
+    }
+  });
+
+  // Clean up internal helper property
+  groups.forEach(g => delete (g as any)._firstAppId);
+
+  _cachedAppGroups = groups;
+  return _cachedAppGroups;
+}
+
+export class LivingAppsService {
+  // --- UEBUNGEN ---
+  static async getUebungen(): Promise<Uebungen[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.UEBUNGEN}/records`);
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Uebungen[];
+    return enrichLookupFields(records, 'uebungen');
+  }
+  static async getUebungenEntry(id: string): Promise<Uebungen | undefined> {
+    const data = await callApi('GET', `/apps/${APP_IDS.UEBUNGEN}/records/${id}`);
+    const record = { record_id: data.id, ...data, createdat: data.created_at ?? '', updatedat: data.updated_at ?? null } as Uebungen;
+    return enrichLookupFields([record], 'uebungen')[0];
+  }
+  static async createUebungenEntry(fields: CreateUebungen): Promise<MutationResult> {
+    const data = await callApi('POST', `/apps/${APP_IDS.UEBUNGEN}/records`, { fields: cleanFieldsForApi(fields as any, 'uebungen') });
+    return { ...data, record_id: data.id };
+  }
+  static async updateUebungenEntry(id: string, fields: Partial<CreateUebungen>): Promise<MutationResult> {
+    const data = await callApi('PATCH', `/apps/${APP_IDS.UEBUNGEN}/records/${id}`, { fields: cleanFieldsForApi(fields as any, 'uebungen') });
+    return { ...data, record_id: data.id };
+  }
+  static async deleteUebungenEntry(id: string) {
+    return callApi('DELETE', `/apps/${APP_IDS.UEBUNGEN}/records/${id}`);
+  }
+
+  // --- TRAININGSLOG ---
+  static async getTrainingslog(): Promise<Trainingslog[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.TRAININGSLOG}/records`);
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Trainingslog[];
+    return enrichLookupFields(records, 'trainingslog');
+  }
+  static async getTrainingslogEntry(id: string): Promise<Trainingslog | undefined> {
+    const data = await callApi('GET', `/apps/${APP_IDS.TRAININGSLOG}/records/${id}`);
+    const record = { record_id: data.id, ...data, createdat: data.created_at ?? '', updatedat: data.updated_at ?? null } as Trainingslog;
+    return enrichLookupFields([record], 'trainingslog')[0];
+  }
+  static async createTrainingslogEntry(fields: CreateTrainingslog): Promise<MutationResult> {
+    const data = await callApi('POST', `/apps/${APP_IDS.TRAININGSLOG}/records`, { fields: cleanFieldsForApi(fields as any, 'trainingslog') });
+    return { ...data, record_id: data.id };
+  }
+  static async updateTrainingslogEntry(id: string, fields: Partial<CreateTrainingslog>): Promise<MutationResult> {
+    const data = await callApi('PATCH', `/apps/${APP_IDS.TRAININGSLOG}/records/${id}`, { fields: cleanFieldsForApi(fields as any, 'trainingslog') });
+    return { ...data, record_id: data.id };
+  }
+  static async deleteTrainingslogEntry(id: string) {
+    return callApi('DELETE', `/apps/${APP_IDS.TRAININGSLOG}/records/${id}`);
+  }
+
+}
+```
+
+## src/App.tsx
+```
+import '@/lib/sentry';
+import '@/lib/stale-bundle';
+import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import { locale, onLocaleChange, syncProfileLocale } from '@/i18n';
+import { ActionsProvider } from '@/context/ActionsContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorBusProvider } from '@/components/ErrorBus';
+import { Layout } from '@/components/Layout';
+import DashboardOverview from '@/pages/DashboardOverview';
+import AdminPage from '@/pages/AdminPage';
+import PublicPagesAdmin from '@/pages/PublicPagesAdmin';
+import UebungenPage from '@/pages/UebungenPage';
+import UebungenDetailPage from '@/pages/UebungenDetailPage';
+import TrainingslogPage from '@/pages/TrainingslogPage';
+import TrainingslogDetailPage from '@/pages/TrainingslogDetailPage';
+// <custom:imports>
+// </custom:imports>
+
+// Lazy: public pages live outside <Layout> and only load on /#/public/:slug —
+// dashboard users never pay for them, anonymous visitors skip the dashboard.
+const PublicPage = lazy(() => import('@/pages/public/PublicPage'));
+
+// Language switch = full remount below the router: every t()/label lookup
+// re-evaluates, the la-* widgets re-read <html lang>. Sits INSIDE
+// ActionsProvider so chat/drawer state survives a switch, and inside
+// HashRouter so the current route survives (it re-reads the URL hash).
+function LocaleGate({ children }: { children: React.ReactNode }) {
+  // The i18n layer notifies for locale CHANGES and for catalog/overlay
+  // ARRIVALS (same locale, new data). `setCurrent(locale)` bailed out on
+  // the arrivals — when locales/pages.json lost the race against the first
+  // paint, the page stayed frozen in the build language until the next
+  // locale switch. A generation counter accepts every notification; the
+  // key must include it because `children` is the same element object on
+  // every gate render (React would bail out without the remount).
+  const [gen, setGen] = useState(0);
+  useEffect(() => onLocaleChange(() => setGen((g) => g + 1)), []);
+  // Adopt the LA profile language (SSOT) — but never on public routes,
+  // where the visitor's browser language governs (initPublicLocale).
+  useEffect(() => {
+    if (!window.location.hash.startsWith('#/public')) void syncProfileLocale();
+  }, []);
+  return <Fragment key={`${locale}:${gen}`}>{children}</Fragment>;
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <ErrorBusProvider>
+        <HashRouter>
+          <ActionsProvider>
+            <LocaleGate>
+            <Routes>
+              <Route path="public/:slug" element={<Suspense fallback={null}><PublicPage /></Suspense>} />
+              <Route element={<Layout />}>
+                <Route index element={<DashboardOverview />} />
+                <Route path="uebungen" element={<UebungenPage />} />
+                <Route path="uebungen/:id" element={<UebungenDetailPage />} />
+                <Route path="trainingslog" element={<TrainingslogPage />} />
+                <Route path="trainingslog/:id" element={<TrainingslogDetailPage />} />
+                <Route path="admin" element={<AdminPage />} />
+                <Route path="verwaltung/oeffentliche-seiten" element={<PublicPagesAdmin />} />
+                {/* <custom:routes> */}
+                {/* </custom:routes> */}
+              </Route>
+            </Routes>
+            </LocaleGate>
+          </ActionsProvider>
+        </HashRouter>
+      </ErrorBusProvider>
+    </ErrorBoundary>
+  );
+}
+
+```
+
+## src/components/Layout.tsx
+```
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { IconAlertCircle } from '@tabler/icons-react';
+import { useState, useEffect, useRef } from 'react';
+import ChatWidget from '@/components/ChatWidget';
+import { ActionCodeDrawer } from '@/components/ActionCodeDrawer';
+import { ActionInputDialog } from '@/components/ActionInputDialog';
+import { ActionsSidebar } from '@/components/ActionsSidebar';
+import { IntentsNav } from '@/components/IntentsNav';
+import { PublicPagesNav } from '@/components/PublicPagesNav';
+import { useActions } from '@/context/ActionsContext';
+import { Button } from '@/components/ui/button';
+import { VersionCheck } from '@/components/VersionCheck';
+// Sprachwechsel kommt aus der Plattform-Topnav: sie schreibt <html lang>,
+// src/i18n beobachtet das Attribut und LocaleGate remountet den Baum.
+import { t, appgroupLabel } from '@/i18n';
+
+const APP_ID = '6a7ee25960d65014941c40fe';
+const APPGROUP_ID = '6a7ee265de78cd402fc80770';
+
+const IS_EMBED = new URLSearchParams(window.location.search).has('embed') || window.navigator.userAgent.startsWith('LivingAppsMobile');
+
+export function Layout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { inputFormAction, inputFormOptions, submitActionInputs, cancelInputForm } = useActions();
+  const [authError, setAuthError] = useState(false);
+  const drawerRef = useRef<HTMLElement>(null);
+  const dashboardLinkRef = useRef<HTMLElement>(null);
+  useEffect(() => { document.title = appgroupLabel(); }, []);
+  useEffect(() => {
+    const handler = () => setAuthError(true);
+    window.addEventListener('auth-error', handler);
+    return () => window.removeEventListener('auth-error', handler);
+  }, []);
+
+  // Mobil startet der Drawer eingeklappt. Das collapsed-Attribut wird
+  // imperativ gesetzt (nicht als JSX-Prop), weil die Header-Bar es beim
+  // Toggle selbst setzt/entfernt — React darf es nicht zurückerobern.
+  useEffect(() => {
+    if (drawerRef.current && window.matchMedia('(max-width: 767.98px)').matches) {
+      drawerRef.current.setAttribute('collapsed', '');
+    }
+  }, []);
+
+  // Der Dashboard-Eintrag zeigt per App-Parameter auf genau diese Seite —
+  // statt sie neu zu laden (leave-page + location.assign), fangen wir das
+  // cancelbare Event ab und wechseln SPA-intern auf die Übersicht.
+  useEffect(() => {
+    const el = dashboardLinkRef.current;
+    if (!el) return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      navigate('/');
+      if (window.matchMedia('(max-width: 767.98px)').matches) {
+        el.closest('la-drawer')?.setAttribute('collapsed', '');
+      }
+    };
+    el.addEventListener('dashboard-link:action-request', handler);
+    return () => el.removeEventListener('dashboard-link:action-request', handler);
+  }, [navigate]);
+
+  // Aktiv-Zustand des Dashboard-Eintrags: la-dashboard-link-widget kennt
+  // (anders als la-app-group-nav-widget) kein here-Flag — Widget-Lücke.
+  // Wir spiegeln die here-Optik der Nachbarliste über ein zustandsabhängiges
+  // Stylesheet im offenen Shadow DOM. Interval-Fallback, weil der Loader
+  // asynchron lädt und das Shadow Root beim ersten Render fehlen kann.
+  const onDashboard = location.pathname === '/';
+  useEffect(() => {
+    const apply = () => {
+      const sr = dashboardLinkRef.current?.shadowRoot;
+      if (!sr) return false;
+      let style = sr.querySelector('style[data-here]');
+      if (!style) {
+        style = document.createElement('style');
+        style.setAttribute('data-here', '');
+        sr.appendChild(style);
+      }
+      // #d24601 = text-action-orange-dark der Widget-Library (here-Optik)
+      style.textContent = onDashboard
+        ? 'a { color: #d24601 !important; font-weight: 500; cursor: default; }'
+        : '';
+      return true;
+    };
+    if (apply()) return;
+    const timer = window.setInterval(() => { if (apply()) window.clearInterval(timer); }, 250);
+    return () => window.clearInterval(timer);
+  }, [onDashboard]);
+
+  return (
+    // Der body ist das App-Frame-Grid (Vorgabe Widget-Team, s. index.css):
+    // top/left/center-Areas. #root und dieser Wrapper sind display:contents,
+    // damit Header, Drawer und Content direkte Grid-Items werden. Die
+    // Area-Zuordnung von Header/Drawer liegt in index.css.
+    <div className="contents">
+      {!IS_EMBED && (
+        <la-header-bar-widget title={appgroupLabel()} app-id={APP_ID}>
+          {/* app-id auch am Menü selbst: erst mit eigenem App-Kontext zeigt
+              es die Einstellungs-Sektion (Benutzerverwaltung, Datenansicht,
+              Klar KI, App kopieren, Anleitung, Struktur). */}
+          <la-apps-menu-widget slot="widgets" app-id={APP_ID} />
+          <la-profile-menu-widget slot="widgets" />
+        </la-header-bar-widget>
+      )}
+
+      {/* Overlay-Widgets, die Header (Contact) und Profil-Menü (Profil
+          bearbeiten / Sicherheit) per document.querySelector suchen und über
+          das open-Attribut öffnen — ohne diese Elemente verpuffen die Klicks
+          stumm. Bewusst NICHT in den Header geslottet: als Geschwister bleiben
+          ihre Modals außerhalb des Header-Stacking-Contexts (z-Leiste). */}
+      {!IS_EMBED && (
+        <>
+          <la-feedback-form-widget />
+          <la-user-profile-widget />
+          <la-security-widget />
+          {/* „Aktuelle App kopieren" im Apps-Menü sucht dieses Overlay per
+              querySelector; la-gua-widget (Benutzerverwaltung) erzeugt das
+              Menü dagegen selbst. */}
+          <la-app-group-copy-widget data-grp-id={APPGROUP_ID} />
+        </>
+      )}
+
+      {/* Drawer = Grid-Area "left" (Zuordnung in index.css): In-Flow-Spalte,
+          die den Content selbst verdrängt; eingeklappt ein schmaler Streifen
+          mit Hover-Peek. Mobil ein Fixed-Overlay (verlässt das Grid). */}
+      {!IS_EMBED && (
+        <la-drawer ref={drawerRef}>
+          {/* Darstellung-Umschalter — identisch zur Datenverwaltung: der
+              Dashboard-Eintrag (la-dashboard-link-widget) und die App-Liste
+              der Gruppe (la-app-group-nav-widget → /gateway-Listenseiten). */}
+          <la-nav-section type="secondary" label={t('display_section')}>
+            <la-dashboard-link-widget ref={dashboardLinkRef} app-id={APP_ID} />
+            {/* dense = kleinere Unterpunkt-Schrift (setzt --la-nav-text-size
+                im Sektions-Shadow) — exakt wie die Datenverwaltung im Gateway. */}
+            <la-nav-section type="primary" label={t('data_management')} icon="IconMenu2" dense="">
+              <la-app-group-nav-widget group-id={APPGROUP_ID} />
+            </la-nav-section>
+          </la-nav-section>
+
+          {/* Aktionen-Sektion (Figma-Muster): alles, was man TUN kann —
+              Abläufe und Öffentliche Seiten als aufklappbare Gruppen
+              (starten zu), Werkzeuge als schlichter Eintrag (öffnet den
+              ActionsDrawer), dann die Version als Meta-Zeile. Klar Lab und
+              die Entwickler/Beta-Toggles stecken im Versions-Panel. */}
+          <la-nav-section type="secondary" label={t('actions_section')}>
+            <IntentsNav />
+            <ActionsSidebar />
+            <PublicPagesNav />
+            <div className="pt-2">
+              <VersionCheck />
+            </div>
+          </la-nav-section>
+
+          {/* Sticky Footer = dünne Meta-Zeile (Figma-Muster). Relative
+              Pfade, damit die Plattform-Seiten auf jedem Host stimmen. */}
+          <div slot="footer" className="flex flex-wrap gap-x-4 gap-y-1 border-t border-sidebar-border py-3 text-sm font-medium text-muted-foreground">
+            <a href="/impressum.htm" className="hover:text-foreground transition-colors">{t('legal_imprint')}</a>
+            <a href="/datenschutz.htm" className="hover:text-foreground transition-colors">{t('legal_privacy')}</a>
+            <a href="/apps.htm" className="hover:text-foreground transition-colors">LivingApps</a>
+          </div>
+        </la-drawer>
+      )}
+
+      <div className="[grid-area:center] min-w-0">
+        <main className={`max-w-screen-2xl ${IS_EMBED ? "p-2 lg:p-4" : "p-6 lg:p-8"}`}>
+          {authError ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center">
+                <IconAlertCircle size={22} className="text-destructive" />
+              </div>
+              <div className="text-center">
+                <h3 className="font-semibold text-foreground mb-1">{t('auth_error_title')}</h3>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => {
+                window.location.href = `${window.location.origin}/login.htm?cugCoUrl=${encodeURIComponent(window.location.href)}`;
+              }}>{t('auth_login_button')}</Button>
+            </div>
+          ) : (
+            <Outlet />
+          )}
+        </main>
+      </div>
+
+      <ChatWidget />
+      <ActionCodeDrawer />
+
+      {inputFormAction && inputFormAction.metadata?.input_schema && (
+        <ActionInputDialog
+          action={inputFormAction}
+          schema={inputFormAction.metadata.input_schema}
+          options={inputFormOptions}
+          onSubmit={(inputs, files) => submitActionInputs(inputFormAction, inputs, files)}
+          onCancel={cancelInputForm}
+        />
+      )}
+    </div>
+  );
+}
+
+```
+
+## src/hooks/useDashboardData.ts
+```
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { Uebungen, Trainingslog } from '@/types/app';
+import { LivingAppsService } from '@/services/livingAppsService';
+import { t } from '@/i18n';
+
+/** Dashboard data + the OPTIMISTIC-WRITE API.
+ *
+ *  The per-entity setters (`set<Entity>`) are exported for exactly one job:
+ *  optimistic updates on drag writes (onEventDrop / onEventResize /
+ *  onCardMove). Call the setter FIRST — the bar/card lands instantly — then
+ *  fire the PATCH in the background and call `fetchAll()` ONLY in the catch.
+ *  Never await the PATCH before updating state (the UI freezes for the full
+ *  round-trip on every drag) and never refetch after a successful write.
+ *  There is no other mechanism (no `__optimistic`, no `mutate`).
+ */
+export function useDashboardData() {
+  const [uebungen, setUebungen] = useState<Uebungen[]>([]);
+  const [trainingslog, setTrainingslog] = useState<Trainingslog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchAll = useCallback(async () => {
+    setError(null);
+    try {
+      const [uebungenData, trainingslogData] = await Promise.all([
+        LivingAppsService.getUebungen(),
+        LivingAppsService.getTrainingslog(),
+      ]);
+      setUebungen(uebungenData);
+      setTrainingslog(trainingslogData);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(t('data_load_failed')));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Silent background refresh (no loading state change → no flicker)
+  useEffect(() => {
+    async function silentRefresh() {
+      try {
+        const [uebungenData, trainingslogData] = await Promise.all([
+          LivingAppsService.getUebungen(),
+          LivingAppsService.getTrainingslog(),
+        ]);
+        setUebungen(uebungenData);
+        setTrainingslog(trainingslogData);
+      } catch {
+        // silently ignore — stale data is better than no data
+      }
+    }
+    function handleRefresh() { void silentRefresh(); }
+    window.addEventListener('dashboard-refresh', handleRefresh);
+    return () => window.removeEventListener('dashboard-refresh', handleRefresh);
+  }, []);
+
+  const uebungenMap = useMemo(() => {
+    const m = new Map<string, Uebungen>();
+    uebungen.forEach(r => m.set(r.record_id, r));
+    return m;
+  }, [uebungen]);
+
+  return { uebungen, setUebungen, trainingslog, setTrainingslog, loading, error, fetchAll, uebungenMap };
+}
+```
+
+## src/lib/enrich.ts
+```
+import type { EnrichedTrainingslog } from '@/types/enriched';
+import type { Trainingslog, Uebungen } from '@/types/app';
+import { extractRecordId } from '@/services/livingAppsService';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function resolveDisplay(url: unknown, map: Map<string, any>, ...fields: string[]): string {
+  if (!url) return '';
+  const id = extractRecordId(url);
+  if (!id) return '';
+  const r = map.get(id);
+  if (!r) return '';
+  return fields.map(f => String(r.fields[f] ?? '')).join(' ').trim();
+}
+
+interface TrainingslogMaps {
+  uebungenMap: Map<string, Uebungen>;
+}
+
+export function enrichTrainingslog(
+  trainingslog: Trainingslog[],
+  maps: TrainingslogMaps
+): EnrichedTrainingslog[] {
+  return trainingslog.map(r => ({
+    ...r,
+    uebungName: resolveDisplay(r.fields.uebung, maps.uebungenMap, 'name'),
+  }));
+}
+
+```
+
+## src/lib/formatters.ts
+```
+import { format, parseISO } from 'date-fns';
+import { CURRENCY, dateFnsLocale, dateFormat, dateTimeFormat, localeTag } from '@/i18n';
+
+// Pattern, month/weekday names and number grouping all follow the ACTIVE
+// locale — read inside the functions, never hoisted, so a language switch
+// takes effect without a rebuild. The currency itself is a property of the
+// data and stays fixed at the build-time choice (CURRENCY).
+export function formatDate(s: string | undefined) {
+  if (!s) return '—';
+  try { return format(parseISO(s), dateFormat(), { locale: dateFnsLocale() }); } catch { return s; }
+}
+
+export function formatDateTime(s: string | undefined) {
+  if (!s) return '—';
+  try { return format(parseISO(s), dateTimeFormat(), { locale: dateFnsLocale() }); } catch { return s; }
+}
+
+export function formatCurrency(v: number | undefined) {
+  if (v == null) return '—';
+  return new Intl.NumberFormat(localeTag(), { style: 'currency', currency: CURRENCY }).format(v);
+}
+
+/** Extract display label from lookup/select or lookup/radio API response */
+export function displayLookup(val: unknown, options?: {key: string, label: string}[]): string {
+  if (val == null) return '—';
+  if (typeof val === 'object' && val !== null && 'label' in val) return String((val as Record<string, unknown>).label);
+  if (options && typeof val === 'string') { const m = options.find(o => o.key === val); if (m) return m.label; }
+  return String(val);
+}
+
+/** Extract labels from multiplelookup/checkbox API response */
+export function displayMultiLookup(val: unknown, options?: {key: string, label: string}[]): string {
+  if (val == null) return '—';
+  if (Array.isArray(val)) return val.map(v => {
+    if (typeof v === 'object' && v !== null && 'label' in v) return String((v as Record<string, unknown>).label);
+    if (options && typeof v === 'string') { const m = options.find(o => o.key === v); if (m) return m.label; }
+    return String(v);
+  }).join(', ') || '—';
+  return displayLookup(val, options);
+}
+
+/** Extract key from lookup value (handles both {key,label} objects and plain strings) */
+export function lookupKey(val: unknown): string | undefined {
+  if (val == null) return undefined;
+  if (typeof val === 'object' && val !== null && 'key' in val) return String((val as Record<string, unknown>).key);
+  if (typeof val === 'string') return val;
+  return undefined;
+}
+
+/** Extract keys from multiplelookup value */
+export function lookupKeys(val: unknown): string[] {
+  if (!Array.isArray(val)) return [];
+  return val.map(v => typeof v === 'object' && v !== null && 'key' in v ? String((v as Record<string, unknown>).key) : String(v));
+}
+```
