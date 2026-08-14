@@ -1,0 +1,42 @@
+{
+  "pages": {
+    "en": {
+      "Bearbeiten": "Edit",
+      "Bereit für dein erstes Training?": "Ready for Your First Workout?",
+      "Di": "Tue",
+      "Diese Woche": "This Week",
+      "Do": "Thu",
+      "Ersten Satz loggen": "Log First Set",
+      "Fr": "Fri",
+      "Heute": "Today",
+      "Kraftfortschritt": "Strength Progress",
+      "Letzte Sätze": "Recent Sets",
+      "Logge deinen ersten Satz und verfolge deinen Fortschritt.": "Log your first set and track your progress.",
+      "Mehr": "More",
+      "Mi": "Wed",
+      "Mo": "Mon",
+      "Noch kein Training heute — leg los!": "No Workout Yet Today — Get Started!",
+      "Noch keine Sätze geloggt": "No Sets Logged Yet",
+      "Noch keine Übungen angelegt": "No Exercises Created Yet",
+      "Nächster Monat": "Next Month",
+      "Sa": "Sat",
+      "Satz aktualisiert": "Set Updated",
+      "Satz geloggt": "Set Logged",
+      "Satz loggen": "Log Set",
+      "So": "Sun",
+      "Starte dein Training": "Start Your Workout",
+      "Sätze": "Sets",
+      "Trainings-Heatmap": "Workout Heatmap",
+      "Trainingstage": "Training Days",
+      "Unbekannte Übung": "Unknown Exercise",
+      "Vorheriger Monat": "Previous Month",
+      "Weniger": "Less",
+      "{0} Sätze heute — weiter so!": "{0} Sets Today — Keep It Up!",
+      "{0} kg × {1} Wdh.": "{0} kg × {1} Reps",
+      "Übung aktualisiert": "Exercise Updated",
+      "Übung angelegt": "Exercise Created",
+      "Übung anlegen": "Create Exercise"
+    }
+  },
+  "v": 1
+}

@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": [],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten-Entity für Bewegungsmuster. Keine Datums-Paare, keine applookup-Chains, keine numerischen Beziehungen. Muskelgruppe ist optional (7-Optionen-Select) → keine Pflicht-Vorbelegung."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum"],
+      "computed_keys": [],
+      "reason": "Transaction-Log eines Trainings-Satzes. Number-Felder (satz_nummer, gewicht_kg, wiederholungen) sind unabhängige Mess-Parameter, keine Produkt- oder Aggregat-Beziehung. Kein Preis/Satz-Lookup im applookup-Target (Übungen). Nur Datums-Default (erfassungs-Semantik) sinnvoll."
+    }
+  }
+}
