@@ -15,6 +15,7 @@ import UebungenDetailPage from '@/pages/UebungenDetailPage';
 import TrainingslogPage from '@/pages/TrainingslogPage';
 import TrainingslogDetailPage from '@/pages/TrainingslogDetailPage';
 // <custom:imports>
+const IntentSatzErfassenPage = lazy(() => import('@/pages/intents/SatzErfassenPage'));
 // </custom:imports>
 
 // Lazy: public pages live outside <Layout> and only load on /#/public/:slug —
@@ -61,6 +62,7 @@ export default function App() {
                 <Route path="admin" element={<AdminPage />} />
                 <Route path="verwaltung/oeffentliche-seiten" element={<PublicPagesAdmin />} />
                 {/* <custom:routes> */}
+                <Route path="intents/satz-erfassen" element={<Suspense fallback={null}><IntentSatzErfassenPage /></Suspense>} />
                 {/* </custom:routes> */}
               </Route>
             </Routes>
