@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": [],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten — keine Zahlfelder, keine Applookups, keine Berechnungslogik. fieldOrder nur zur Lesbarkeit sortiert."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum", "satz_nummer", "wiederholungen"],
+      "computed_keys": ["_trainings_volume"],
+      "reason": "Trainingsprotokoll mit Gewicht × Wiederholungen = Trainingsvolumen (Archetyp 2: Produkt). Datum mit heute + Uhrzeit, Satznummer und Wiederholungen = 1 als Anfangswerte (typisches Training). Virtueller Key _trainings_volume für Aggregat-Hinweis unten im Dialog."
+    }
+  }
+}

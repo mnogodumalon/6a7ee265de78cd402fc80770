@@ -1,0 +1,15 @@
+{
+  "UebungenDialog.tsx": {
+    "name": "z. B. Bankdrücken",
+    "muskelgruppe": "Wähle eine Muskelgruppe",
+    "notizen": "Technik-Tipps, Variationen, Vorsichtsmaßnahmen..."
+  },
+  "TrainingslogDialog.tsx": {
+    "datum": "Wann hast du trainiert?",
+    "uebung": "Welche Übung?",
+    "satz_nummer": "z. B. 1",
+    "gewicht_kg": "z. B. 50",
+    "wiederholungen": "z. B. 10",
+    "notiz": "Wie ging es dir? Schwierigkeiten?"
+  }
+}
