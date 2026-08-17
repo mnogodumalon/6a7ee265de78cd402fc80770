@@ -1,0 +1,41 @@
+{
+  "pages": {
+    "en": {
+      "Alle Übungen": "All Exercises",
+      "Bearbeiten": "Edit",
+      "Di": "Tue",
+      "Do": "Thu",
+      "Filter aufheben": "Clear Filter",
+      "Fr": "Fri",
+      "Heute: {0} {1} erfasst.": "Today: {0} {1} logged.",
+      "Kein Training": "No Workout",
+      "Letzte Sätze": "Recent Sets",
+      "Mehr": "More",
+      "Mi": "Wed",
+      "Mo": "Mon",
+      "Noch kein Training heute — starte deinen ersten Satz!": "No workout today yet — start your first set!",
+      "Noch keine Sätze — erfasse deinen ersten Satz!": "No sets yet — log your first set!",
+      "Noch keine Übungen — lege deine erste Übung an!": "No exercises yet — create your first exercise!",
+      "Sa": "Sat",
+      "Satz": "Set",
+      "Satz erfassen": "Log Set",
+      "Satz {0} · ": "Set {0} · ",
+      "So": "Sun",
+      "Stärkefortschritt — max. Gewicht (kg)": "Strength Progress — Max. Weight (kg)",
+      "Sätze": "Sets",
+      "Sätze am {0}": "Sets on {0}",
+      "Sätze gesamt": "Total Sets",
+      "Top-Übung": "Top Exercise",
+      "Trainieren": "Work Out",
+      "Trainingsaktivität": "Training Activity",
+      "Trainingstage (30 Tage)": "Training Days (30 Days)",
+      "Weniger": "Less",
+      "{0} Sätze": "{0} Sets",
+      "{0} – Kein Training": "{0} – No Workout",
+      "{0} – {1} Sätze": "{0} – {1} Sets",
+      "Ø Gewicht (kg)": "Avg. Weight (kg)",
+      "Übung anlegen": "Add Exercise"
+    }
+  },
+  "v": 1
+}

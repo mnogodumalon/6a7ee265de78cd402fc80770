@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": [],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten-Entity (Trainingsübungs-Katalog). Keine Zahlfelder, keine Datumskombinationen, keine applookup-Verkettungen mit numerischen Zielen. Nichts berechenbar."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum"],
+      "computed_keys": [],
+      "reason": "Trainings-Tracking-Journal mit Datum, applookup und isolierten Zahlfeldern (Satz, Gewicht, Wiederholungen). Applookup auf Übungen hat kein Preis-Feld im Target. Keine Produkte oder Aggregationen erkennbar; kein explizites Volumen- oder Kosten-Backend-Feld vorhanden. Trainingsparameter sind unabhängig erfasst, nicht berechenbar aus anderen Feldern."
+    }
+  }
+}

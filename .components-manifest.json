@@ -1,0 +1,10 @@
+{
+  "components": [
+    {
+      "file": "src/components/custom/TrainingHeatmap.tsx",
+      "component": "TrainingHeatmap",
+      "ok": true,
+      "error": null
+    }
+  ]
+}
