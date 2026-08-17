@@ -1,0 +1,42 @@
+{
+  "pages": {
+    "en": {
+      "+ Satz": "+ Set",
+      "Di": "Tue",
+      "Diese Woche": "This Week",
+      "Do": "Thu",
+      "Erste Übung anlegen": "Create First Exercise",
+      "Fr": "Fri",
+      "Füge zuerst deine Übungen hinzu, dann kannst du mit dem Loggen beginnen.": "Add your exercises first, then you can start logging.",
+      "Heute": "Today",
+      "Heute & gestern": "Today & Yesterday",
+      "Intensität": "Intensity",
+      "Kein Training an diesem Tag.": "No workout on this day.",
+      "Leg los — füge deine erste Übung hinzu.": "Get started — add your first exercise.",
+      "Loggen": "Log",
+      "Mi": "Wed",
+      "Mo": "Mon",
+      "Muskelgruppe": "Muscle Group",
+      "Noch kein Training heute — leg los!": "No workout yet today — get started!",
+      "Noch keine Sätze heute — tippe auf + Satz loggen": "No sets yet today — tap + Log Set",
+      "Noch keine Übungen — lege jetzt deine erste an.": "No exercises yet — create your first one now.",
+      "Richte deinen Fitnesstracker ein": "Set up your fitness tracker",
+      "Sa": "Sat",
+      "Satz loggen": "Log Set",
+      "Satz {0}": "Set {0}",
+      "So": "Sun",
+      "Stärker": "Stronger",
+      "Sätze pro Muskelgruppe": "Sets per Muscle Group",
+      "Tag": "Day",
+      "Tage": "Days",
+      "Trainings-Aktivität": "Training Activity",
+      "mittel": "Medium",
+      "viel": "High",
+      "wenig": "Low",
+      "{0} Sätze heute · Streak: {1} {2}": "{0} sets today · Streak: {1} {2}",
+      "{0} {1} Streak — trainier heute weiter!": "{0} {1} Streak — keep training today!",
+      "Übung anlegen": "Create Exercise"
+    }
+  },
+  "v": 1
+}

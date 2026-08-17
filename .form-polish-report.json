@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "Übungen": {
+      "placeholders_set": 3,
+      "defaults_keys": ["muskelgruppe"],
+      "computed_keys": [],
+      "reason": "Reine Stammdaten-Entity ohne Number-Felder, Dates oder applookup-Ketten. muskelgruppe erhält Default auf erstes Element (Brust) zur Schnellheit. Keine Berechnung möglich."
+    },
+    "Trainingslog": {
+      "placeholders_set": 6,
+      "defaults_keys": ["datum", "satz_nummer"],
+      "computed_keys": ["_volumen_kg"],
+      "reason": "Transaktions-Log mit Trainingsmetriken. datum erhält today mit Uhrzeit (Standard-Trainingstag), satz_nummer erhält 1 (typischer Start). Volumen (Gewicht × Wiederholungen) ist ARCHETYP 2 (Produkt) — klassische Sport-Metrik für jeden Satz."
+    }
+  }
+}
